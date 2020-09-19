@@ -1,181 +1,135 @@
-#' Compute Power for Categorical Moderation Meta-analysis
+#' Compute Power for Categorical Moderator Analysis in Meta-analysis
 #'
-#' Computes statistical power for categorical moderator models under fixed- and random-effects models
+#' Computes statistical power for categorical moderator analysis under fixed and random effects models.
 #'
+#' @param n_groups Numerical value for the levels of a categorical variable.
 #'
-#' @param n_groups Number of anticipated groups in moderation analysis
+#' @param effect_sizes Numerical values for effect sizes of for each group.
 #'
-#' @param effect_sizes  Expected effect sizes of for each group.
+#' @param es_type Character reflecting effect size metric: 'r', 'd', or 'or'.
 #'
-#' @param es_type 'Correlation', 'd', or 'OR'
+#' @param sample_size Numerical value for number of participants (per study).
 #'
-#' @param sample_size Expected number of participants (per group)
+#' @param k Numerical value for total number of studies.
 #'
-#' @param k Total expected number of studies
+#' @param p Numerical value for significance level (Type I error probability).
 #'
-#' @param p Significance level (Type I error probability)
-#'
-#' @param test_type "two-tailed" or "one-tailed"
-#'
-#' @param sd_within (Optional) For computing power for a test of homogeneity (within-groups). standard deviation of each group to the overall mean
-#'
-#' @param con_table (Optional) For Odds Ratio effect sizes. Expected 2x2 contingency table as a vector in the following format: c(a,b,c,d)
+#' @param con_table (Optional) List of numerical values for 2x2 contingency
+#'     tables as a vector in the following format: c(a,b,c,d). These should be
+#'     specified for each group(i.e., n_groups).
 #'
 #' \tabular{lcc}{
 #'  2x2 Table   \tab Group 1 \tab Group 2 \cr
 #'  Present     \tab a       \tab b       \cr
 #'  Not Present \tab c       \tab d       \cr
 #'}
-#'
-#' @return Estimated Power estimates for between and within-groups moderation
-#'
+#' @return Estimated Power estimates for moderator analysis under fixed- and random-effects models
 #' @examples
-#' mod_power(
-#'  n_groups = 3,
-#'  effect_sizes = c(0,.1,.55),
-#'  sample_size = 15,
-#'  k = 15,
-#'  es_type = "Correlation",
-#'  sd_within = c(1,1,4),
-#'  test_type = "two-tailed",
-#'  p = .05)
+#' mod_power(n_groups = 2,
+#'           effect_sizes = c(.1,.5),
+#'           sample_size = 20,
+#'           k = 10,
+#'           es_type = "d")
+#' mod_power(n_groups = 2,
+#'           con_table = list(g1 = c(6,5,4,5), g2 = c(8,5,2,5)),
+#'           sample_size = 40,
+#'           k = 20,
+#'           es_type = "or")
+#'
+#' @seealso
+#' \url{https://jason-griffin.shinyapps.io/shiny_metapower/}
 #'
 #' @importFrom stats pchisq
 #' @importFrom stats qchisq
+#' @importFrom stats dchisq
+#' @importFrom stats integrate
+#' @importFrom stats pgamma
 #' @export
 
-mod_power <- function(n_groups,
-                      effect_sizes,
-                      sample_size,
-                      k,
-                      es_type,
-                      test_type = "two-tailed",
-                      p = .05,
-                      sd_within = NULL,
-                      con_table = NULL) {
+mod_power <- function(n_groups, effect_sizes, sample_size, k, es_type, p = .05, con_table = NULL) {
 
-  ## Arguement Integrity Checks
-  #model_options <- c("fixed", "random")
-  test_type_options <- c("one-tailed", "two-tailed")
-  #hg_options <- c("small", "medium", "large")
-  es_type_options <- c("d","Correlation", "OR")
-
-  #n_groups
-  if(missing(n_groups))
-    stop("Must specify number of groups: n_groups")
-  if(!(is.numeric(n_groups)))
-    stop("n_groups must be a single integer")
-  if(length(n_groups) > 1)
-    stop("n_groups must be a single integer")
-  if(n_groups < 2)
-    stop("number of groups must be at least 2")
-
-  #effect_sizes
   if(missing(effect_sizes))
-    stop("Need to specify expected effect sizes per group")
-  if(length(effect_sizes) != n_groups)
-    stop("The number of of effect sizes should match the number of groups")
+    effect_sizes = NULL
+  ## Argument Check
+  mod_power_integrity(n_groups, effect_sizes, sample_size, k, es_type, p, con_table)
 
-  #sample_size
-  if(missing(sample_size))
-    stop("Need to specify expected sample size")
-  if(!(is.numeric(sample_size)))
-    stop("sample_size must be numeric")
-  if(length(sample_size) > 1)
-    stop("sample_size must be a single number")
-  if(sample_size < 1)
-    stop("sample_size must be greater than 0")
+  ## compute degrees of freedom for between and within-study
+  df_b <- n_groups-1
+  df_w <- k-n_groups
+  ## compute critical value for power
+  c_alpha_b <- qchisq(1-p, df_b, 0, lower.tail = TRUE)
+  c_alpha_w <- qchisq(1-p, df_w, 0, lower.tail = TRUE)
 
-  # Number of Studies
-  if(missing(k))
-    stop("Need to specify expected number of studies")
-  if(!(is.numeric(k)))
-    stop("k must be numeric")
-  if(length(k) > 1)
-    stop("k must be a single number")
-  if(k < 2)
-    stop("k must be greater than 1")
-  if((k/n_groups)%%1!=0)
-    stop("Number of studies must be a multiple of n_groups")
+  ## factor by which range of studies will population power curves
+  range_factor <- 5
 
-  ## es_type
-  if(missing(es_type))
-    stop("Need to specify effect size as 'd', 'Correlation', or 'OR'")
-  if(!(es_type %in% es_type_options))
-    stop("Need to specify effect size as 'd', 'Correlation', or 'OR'")
+  if(es_type == "d"){
+    sample_size <- sample_size/2
+    effect_diff <- effect_sizes - effect_sizes[1] # difference in effects
+    overall_effect <- mean(effect_sizes) # find overall mean
+    variance <- compute_variance(sample_size, overall_effect, es_type, con_table) # compute variance for each level of the moderator
 
-  ## effect size
-  # d
-  if(es_type == 'd' & any(effect_sizes > 10))
-    warning("Are you sure at least one effect size is >10?")
-  # Correlation
-  if(es_type == 'Correlation' & any(effect_sizes > 1))
-    stop("Correlations cannot be above 1")
-  if(es_type == 'Correlation' & any(effect_sizes < 0))
-    stop("Correlations must be above 0")
-  # Odds Ratio
-  if(es_type == 'OR' & any(effect_sizes <= 1))
-    stop("Odds ratio should be above 1")
-  if(es_type == "OR" & missing(con_table))
-    stop("For Odds Ratio, must enter contigency table (cont_table)")
-  if(es_type == "OR" & !missing(con_table)){
-    if(length(con_table) != 4)
-      stop("con_table must reflect a 2x2 contingency table with the form c(a,b,c,d). see documentation")
-    if(sample_size != sum(con_table))
-      stop("Entered sample size should equal the sum of the contigency table")
-    }
+    group = NULL
 
-  # model
-  #if(missing(model))
-  #  stop("Need to specify 'fixed' or 'random' effects model")
-  #if(!(model %in% model_options))
-  #  stop("Need to specify 'fixed' or 'random' effects model")
+    # create a power range of data
 
-  ## check for arguements that are not required for fixed models
-  #if(model == "fixed"){
-  #  if (!missing(hg)){
-  #    stop("Fixed-effects models assume no heterogenity")
-  #  } else if (missing(hg)) {
-  #    hg = NULL
-  #  }
-  #}
+    mod_power_range_df <- data.frame(k_v = seq(from = n_groups, to = range_factor*k, by = n_groups),
+                                 overall_effect = overall_effect,
+                                 n_groups = n_groups,
+                                 n_v = sample_size/n_groups,
+                                 c_alpha_b = c_alpha_b,
+                                 c_alpha_w = c_alpha_w) %>% dplyr::mutate(variance = mapply(compute_variance, .data$n_v, .data$overall_effect, es_type))
 
-  ## random effects and heterogenity parameter
-  #if(model == 'random'){
-  #  if(missing(hg)){
-  #    stop("Need to specify small, medium, or large heterogenity")
-  #  } else if (!(hg %in% hg_options)){
-   #   stop("Need to specify small, medium, or large heterogenity")
-  #  }
-  #}
+    }else if(es_type == "r"){
+      effect_sizes <- 0.5*log((1+effect_sizes)/(1-effect_sizes)) ## changes correlation to fisher's z
+      effect_diff <- effect_sizes - effect_sizes[1] # difference in effects
+      overall_effect <- mean(effect_sizes) # find overall mean
+      variance <- compute_variance(sample_size, overall_effect, es_type, con_table)
+      group = NULL
+      ##
+      mod_power_range_df <- data.frame(k_v = seq(from = n_groups, to = range_factor*k, by = n_groups),
+                                       overall_effect = overall_effect,
+                                       n_groups = n_groups,
+                                       n_v = sample_size,
+                                       c_alpha_b = c_alpha_b,
+                                       c_alpha_w = c_alpha_w) %>% dplyr::mutate(variance = mapply(compute_variance, .data$n_v, .data$overall_effect, es_type))
 
-  ## test_type errors
-  if(!(test_type %in% test_type_options))
-    stop("Need to specify two-tailed or one-tailed")
+      }else if(es_type == "or") {
 
-  ##sd_within
-  if(!missing(sd_within)){
-    if(length(sd_within) != n_groups)
-      stop("The number of of effect sizes should match the number within-group standard deviations")
+        ## gather user inputted group names
+        group <- names(con_table)
+        d <- data.frame(group)  # create a data.frame with length equal to how many groups the user enters
+        d$a <- sapply(con_table, "[[", 1)  ## extract the 2x2 components c(a,b,c,d)
+        d$b <- sapply(con_table, "[[", 2)
+        d$c <- sapply(con_table, "[[", 3)
+        d$d <- sapply(con_table, "[[", 4)
+        d$or <- round((d$a*d$d)/(d$b*d$c),3) ## Compute Odds Ratio
+        d$log_or <- round(log(d$or),3)  ## Convert to log odds
+        d$var <- round((1/d$a) + (1/d$b) + (1/d$c) + (1/d$d),3) ## compute variance of log odds
+        effect_diff <- d$log_or - d$log_or[1] ## compute anticipated difference among groups
+        overall_effect <- mean(d$log_or) ## find overall mean
+        variance <- mean(d$var) ## find the common variance among all groups
+        effect_sizes <- d$log_or ## save the effect sizes in log odds to input in subsequent functions
+        ## dataframe for applying mod_power()
+        mod_power_range_df <- data.frame(k_v = seq(from = n_groups, to = range_factor*k, by = n_groups),
+                                         overall_effect = overall_effect,
+                                         n_groups = n_groups,
+                                         n_v = sample_size,
+                                         c_alpha_b = c_alpha_b,
+                                         c_alpha_w = c_alpha_w,
+                                         variance = variance)
   }
 
-  effect_diff <- effect_sizes - effect_sizes[1]
-
-  if(es_type == "Correlation"){
-    effect_sizes <- 0.5*log((1+effect_diff)/(1-effect_diff))
-  }else if(es_type == "OR") {
-    effect_sizes = log(effect_sizes) ## changes odds ratio to log odds
-  }
-
-  mod_power_list <- list(mod_power = compute_mod_power(n_groups, effect_sizes, sample_size, k, es_type, test_type, p, sd_within, con_table),
+  mod_power_list <- list(mod_power = compute_mod_power(n_groups, effect_sizes, variance, overall_effect, sample_size, k, c_alpha_b),
+                         mod_power_range = compute_mod_range(n_groups, effect_sizes, mod_power_range_df),
+                         mod_power_range_df = mod_power_range_df,
                          n_groups = n_groups,
                          effect_sizes = effect_sizes,
                          sample_size = sample_size,
                          k = k,
                          es_type = es_type,
-                         sd_within = sd_within,
-                         con_table = con_table)
-  attr(mod_power_list, "class") <- "modpower"
+                         variance = variance,
+                         group = group)
+  attr(mod_power_list, "class") <- "mod_power"
   return(mod_power_list)
 }
-

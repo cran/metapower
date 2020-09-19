@@ -1,23 +1,20 @@
 #' Compute Power for Meta-analysis
 #'
-#' Computes statistical power for meta-analytic main effects, tests of homogeneity, and categorical moderator models under
-#' both fixed- and random-effects models.
+#' Computes statistical power for summary effect sizes in meta-analysis.
 #'
-#' @param effect_size  Expected effect size magnitude
+#' @param effect_size  Numerical value of effect size.
 #'
-#' @param sample_size Expected number of participants (per group)
+#' @param sample_size Numerical value for number number of participants (per study).
 #'
-#' @param k Expected number of studies
+#' @param k Numerical value for total number of studies.
 #'
-#' @param es_type 'Correlation', 'd', or 'OR'
+#' @param es_type Character reflecting effect size metric: 'r', 'd', or 'or'.
 #'
-#' @param test_type "two-tailed" or "one-tailed"
+#' @param test_type Character value reflecting test type: ("two-tailed" or "one-tailed").
 #'
-#' @param p Significance level (Type I error probability)
+#' @param p Numerical value for significance level (Type I error probability).
 #'
-#' @param sd (Optional) Fixed-effects models only: Expected standard deviation among all effect sizes
-#'
-#' @param con_table (Optional) For Odds Ratio. Expected 2x2 contingency table as a vector in the following format: c(a,b,c,d)
+#' @param con_table (Optional) Numerical values for 2x2 contingency table as a vector in the following format: c(a,b,c,d).
 #'
 #' \tabular{lcc}{
 #'  2x2 Table   \tab Group 1 \tab Group 2 \cr
@@ -28,17 +25,23 @@
 #' @return Estimated Power
 #'
 #' @examples
-#' mpower(effect_size = .5, sample_size = 10, k = 10, es_type = "d")
+#' mpower(effect_size = .2, sample_size = 10, k = 10, es_type = "d")
+#'
+#' @seealso
+#' \url{https://jason-griffin.shinyapps.io/shiny_metapower/}
 #'
 #' @references
 #'
 #' Borenstein, M., Hedges, L. V., Higgins, J. P. T. and Rothstein, H. R.(2009). Introduction to meta-analysis, Chichester, UK: Wiley.
 #'
-#' Hedges, L., Pigott, T. (2004). The Power of Statistical Tests for Moderators in Meta-Analysis Psychological Methods  9(4), 426-445.
+#' Hedges, L., Pigott, T. (2004). The Power of Statistical Tests for Moderators in Meta-Analysis, Psychological Methods, 9(4), 426-445
 #' doi: https://dx.doi.org/10.1037/1082-989x.9.4.426
 #'
 #' Pigott, T. (2012). Advances in Meta-Analysis.
 #' doi: https://dx.doi.org/10.1007/978-1-4614-2278-5
+#'
+#' Jackson, D., Turner, R. (2017). Power analysis for random-effects meta-analysis, Research Synthesis Methods, 8(3), 290-302
+#' doi: https://dx.doi.org/10.1002/jrsm.1240
 #'
 #' @importFrom dplyr mutate
 #' @importFrom dplyr mutate_at
@@ -47,45 +50,99 @@
 #' @importFrom stats pnorm
 #' @importFrom stats pchisq
 #' @importFrom stats qchisq
+#' @importFrom stats dchisq
+#' @importFrom stats integrate
+#' @importFrom stats pgamma
+#' @importFrom testthat test_that
+#' @importFrom testthat expect_equal
+#' @importFrom testthat expect_error
+#' @importFrom testthat expect_match
+#' @importFrom rlang .data
+#' @importFrom knitr knit
 #' @import ggplot2
 #' @import magrittr
 #' @export
 
-mpower <- function(effect_size, sample_size, k, es_type, test_type = "two-tailed", p = .05, sd = NULL, con_table = NULL){
+mpower <- function(effect_size, sample_size, k, es_type, test_type = "two-tailed", p = .05, con_table = NULL){
 
+  if(missing(effect_size))
+    effect_size = NULL
   ## Check that the arguments are correctly specified
-  mpower_integrity(effect_size, sample_size, k, es_type, test_type, p, sd, con_table)
+  mpower_integrity(effect_size, sample_size, k, es_type, test_type, p, con_table)
 
   ## Transform effect sizes condition on the metric
+  ## Determine the critical value cut-of based on one or two tailed test and p-value
+  if(test_type == "two-tailed"){
+    c_alpha <- qnorm(1-(p/2))
+  } else if (test_type =="one-tailed") {
+    c_alpha <- qnorm(1-(p))
+  }
+  ## range of studies for visualization
+  range_factor <- 5
 
-  effect_size = abs(effect_size)
+  if(es_type == "d"){
 
-  if(es_type == "Correlation"){
+    ## sample size for d reflects total n, assume equal groups
+    sample_size <- sample_size/2
 
-    effect_size = .5*log((1 + effect_size)/(1 - effect_size))
+    variance <- compute_variance(sample_size, effect_size, es_type, con_table)
+    # create a power range of data
+    power_range_df <- data.frame(k_v = rep(seq(2,range_factor*k), times = 3),
+                     es_v = rep(c((effect_size/2), effect_size, (effect_size*2)), each = range_factor*k-1),
+                     effect_size = effect_size,
+                     n_v = sample_size,
+                     c_alpha = c_alpha,
+                     test_type = test_type) %>% mutate(variance = mapply(compute_variance, .data$n_v, .data$es_v, es_type))
 
-    }else if(es_type == "OR") {
+    } else if (es_type == "r"){
+    ## Convert to fishers-z
+    effect_size = round(.5*log((1 + effect_size)/(1 - effect_size)),2)
+    ## Compute common variance
+    variance <- compute_variance(sample_size, effect_size, es_type, con_table)
+    ## Create power range of data
+    ### Restrict range based on limitations. For example, a correlation of 1 = fisher's z of 2.64
+    if(effect_size*2 >= 2.64){
+      max = 2.64
+      } else {
+        max = effect_size*2
+        }
+    ## Create power range of data
+    power_range_df <- data.frame(k_v = rep(seq(2,range_factor*k), times = 3),
+                                 es_v = rep(c((effect_size/2), effect_size, max), each = range_factor*k-1), ## special for correlation
+                                 effect_size = effect_size,
+                                 n_v = sample_size,
+                                 c_alpha = c_alpha,
+                                 test_type = test_type) %>% mutate(variance = mapply(compute_variance, .data$n_v, .data$es_v, es_type))
 
-      effect_size = log(effect_size)
+    }else if(es_type == "or") {
+      ## Convert odd ratio to log of odds ratio: log(OR)
 
+      effect_size <- round((con_table[1]*con_table[4])/(con_table[2]*con_table[3]),3)
+      effect_size <- round(log(effect_size),3)
+
+      ## Compute common variance
+      variance <- round((1/con_table[1]) + (1/con_table[2]) + (1/con_table[3]) + (1/con_table[4]),3)
+
+      # Create power range of data
+      power_range_df <- data.frame(k_v = rep(seq(2,range_factor*k), times = 3),
+                                   es_v = rep(c((effect_size/2), effect_size, (effect_size*2)), each = range_factor*k-1),
+                                   effect_size = effect_size,
+                                   n_v = sample_size,
+                                   c_alpha = c_alpha,
+                                   test_type = test_type,
+                                   variance = variance)
       }
-
-# Compute common variance
-variance <- compute_variance(sample_size, effect_size, es_type, con_table)
 # Generate list of relevant variables for output
-power_list <- list(variance = variance,
-                   power = compute_power(effect_size, variance, sample_size, k, es_type, test_type, p),
+  power_list <- list(variance = variance,
+                   power = compute_power(k, effect_size, variance, c_alpha, test_type),
+                   power_range = compute_power_range(power_range_df),
                    effect_size = effect_size,
                    sample_size = sample_size,
                    k = k,
                    es_type = es_type,
                    test_type = test_type,
-                   p = p,
-                   sd = sd,
-                   df = compute_power_range(effect_size, sample_size, k, es_type, test_type, p, con_table),
-                   homo_power = homogen_power(effect_size, variance, sample_size, k, es_type, test_type, p, sd),
-                   homo_range = compute_homogen_range(effect_size, sample_size, k, es_type, test_type, p, sd, con_table))
-attr(power_list, "class") <- "mpower"
+                   p = p)
+  attr(power_list, "class") <- "mpower"
 
-return(power_list)
+  return(power_list)
 }

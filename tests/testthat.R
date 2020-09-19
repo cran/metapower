@@ -1,4 +1,3 @@
-library(testthat)
-library(metapower)
 
+library(testthat)
 test_check("metapower")

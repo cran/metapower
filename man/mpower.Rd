@@ -11,26 +11,23 @@ mpower(
   es_type,
   test_type = "two-tailed",
   p = 0.05,
-  sd = NULL,
   con_table = NULL
 )
 }
 \arguments{
-\item{effect_size}{Expected effect size magnitude}
+\item{effect_size}{Numerical value of effect size.}
 
-\item{sample_size}{Expected number of participants (per group)}
+\item{sample_size}{Numerical value for number number of participants (per study).}
 
-\item{k}{Expected number of studies}
+\item{k}{Numerical value for total number of studies.}
 
-\item{es_type}{'Correlation', 'd', or 'OR'}
+\item{es_type}{Character reflecting effect size metric: 'r', 'd', or 'or'.}
 
-\item{test_type}{"two-tailed" or "one-tailed"}
+\item{test_type}{Character value reflecting test type: ("two-tailed" or "one-tailed").}
 
-\item{p}{Significance level (Type I error probability)}
+\item{p}{Numerical value for significance level (Type I error probability).}
 
-\item{sd}{(Optional) Fixed-effects models only: Expected standard deviation among all effect sizes}
-
-\item{con_table}{(Optional) For Odds Ratio. Expected 2x2 contingency table as a vector in the following format: c(a,b,c,d)
+\item{con_table}{(Optional) Numerical values for 2x2 contingency table as a vector in the following format: c(a,b,c,d).
 
 \tabular{lcc}{
  2x2 Table   \tab Group 1 \tab Group 2 \cr
@@ -42,19 +39,24 @@ mpower(
 Estimated Power
 }
 \description{
-Computes statistical power for meta-analytic main effects, tests of homogeneity, and categorical moderator models under
-both fixed- and random-effects models.
+Computes statistical power for summary effect sizes in meta-analysis.
 }
 \examples{
-mpower(effect_size = .5, sample_size = 10, k = 10, es_type = "d")
+mpower(effect_size = .2, sample_size = 10, k = 10, es_type = "d")
 
 }
 \references{
 Borenstein, M., Hedges, L. V., Higgins, J. P. T. and Rothstein, H. R.(2009). Introduction to meta-analysis, Chichester, UK: Wiley.
 
-Hedges, L., Pigott, T. (2004). The Power of Statistical Tests for Moderators in Meta-Analysis Psychological Methods  9(4), 426-445.
+Hedges, L., Pigott, T. (2004). The Power of Statistical Tests for Moderators in Meta-Analysis, Psychological Methods, 9(4), 426-445
 doi: https://dx.doi.org/10.1037/1082-989x.9.4.426
 
 Pigott, T. (2012). Advances in Meta-Analysis.
 doi: https://dx.doi.org/10.1007/978-1-4614-2278-5
+
+Jackson, D., Turner, R. (2017). Power analysis for random-effects meta-analysis, Research Synthesis Methods, 8(3), 290-302
+doi: https://dx.doi.org/10.1002/jrsm.1240
+}
+\seealso{
+\url{https://jason-griffin.shinyapps.io/shiny_metapower/}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/mod_power.R
 \name{mod_power}
 \alias{mod_power}
-\title{Compute Power for Categorical Moderation Meta-analysis}
+\title{Compute Power for Categorical Moderator Analysis in Meta-analysis}
 \usage{
 mod_power(
   n_groups,
@@ -10,30 +10,26 @@ mod_power(
   sample_size,
   k,
   es_type,
-  test_type = "two-tailed",
   p = 0.05,
-  sd_within = NULL,
   con_table = NULL
 )
 }
 \arguments{
-\item{n_groups}{Number of anticipated groups in moderation analysis}
+\item{n_groups}{Numerical value for the levels of a categorical variable.}
 
-\item{effect_sizes}{Expected effect sizes of for each group.}
+\item{effect_sizes}{Numerical values for effect sizes of for each group.}
 
-\item{sample_size}{Expected number of participants (per group)}
+\item{sample_size}{Numerical value for number of participants (per study).}
 
-\item{k}{Total expected number of studies}
+\item{k}{Numerical value for total number of studies.}
 
-\item{es_type}{'Correlation', 'd', or 'OR'}
+\item{es_type}{Character reflecting effect size metric: 'r', 'd', or 'or'.}
 
-\item{test_type}{"two-tailed" or "one-tailed"}
+\item{p}{Numerical value for significance level (Type I error probability).}
 
-\item{p}{Significance level (Type I error probability)}
-
-\item{sd_within}{(Optional) For computing power for a test of homogeneity (within-groups). standard deviation of each group to the overall mean}
-
-\item{con_table}{(Optional) For Odds Ratio effect sizes. Expected 2x2 contingency table as a vector in the following format: c(a,b,c,d)
+\item{con_table}{(Optional) List of numerical values for 2x2 contingency
+    tables as a vector in the following format: c(a,b,c,d). These should be
+    specified for each group(i.e., n_groups).
 
 \tabular{lcc}{
  2x2 Table   \tab Group 1 \tab Group 2 \cr
@@ -42,20 +38,24 @@ mod_power(
 }}
 }
 \value{
-Estimated Power estimates for between and within-groups moderation
+Estimated Power estimates for moderator analysis under fixed- and random-effects models
 }
 \description{
-Computes statistical power for categorical moderator models under fixed- and random-effects models
+Computes statistical power for categorical moderator analysis under fixed and random effects models.
 }
 \examples{
-mod_power(
- n_groups = 3,
- effect_sizes = c(0,.1,.55),
- sample_size = 15,
- k = 15,
- es_type = "Correlation",
- sd_within = c(1,1,4),
- test_type = "two-tailed",
- p = .05)
+mod_power(n_groups = 2,
+          effect_sizes = c(.1,.5),
+          sample_size = 20,
+          k = 10,
+          es_type = "d")
+mod_power(n_groups = 2,
+          con_table = list(g1 = c(6,5,4,5), g2 = c(8,5,2,5)),
+          sample_size = 40,
+          k = 20,
+          es_type = "or")
 
+}
+\seealso{
+\url{https://jason-griffin.shinyapps.io/shiny_metapower/}
 }
