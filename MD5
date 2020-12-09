@@ -1,4 +1,4 @@
-d41b81ea7f4edd4c01cb6556e32f6f17 *DESCRIPTION
+508e376306ce7309b9ce2196ea23d527 *DESCRIPTION
 831d77c16611caf6529fa646e6b9d63c *NAMESPACE
 4a481d82bcae14e38fea50124ef75037 *NEWS.md
 afb5fcea17e8e2357736dc05ab6af0f8 *R/CDF.R
@@ -14,7 +14,7 @@ ef63ca98740e9b39a83ee6af917b4364 *R/compute_variance.R
 35fed438944cd5190d43d49534692360 *R/func.R
 127a274df8941a9f18c5634c66a455c4 *R/homogen_power.R
 e168b69460465c13be7e06b510f24d24 *R/homogen_power_integrity.R
-bbf2dfb4d982db46215f8d9a885abfd4 *R/mod_power.R
+7ebfa4f5405864933bef48b41065ed39 *R/mod_power.R
 cea3578716888ece40592fa35d8149c4 *R/mod_power_integrity.R
 9d9f8e4706b8f33f53e9a61e8b98e309 *R/mpower.R
 ffbfe9f49509276843ce21dd9e61870b *R/mpower_integrity.R
@@ -26,7 +26,7 @@ d5e04a837ce2b779320189de6576ad6b *R/plot_subgroup_power.R
 1ebffa325a85d6b4b235c72b08b06323 *R/print.mod_power.R
 87bd750bc50456800320b4ad3d6a3400 *R/print.mpower.R
 d378376a5ad468992ce2ae8f91004a38 *R/print.subgroup_power.R
-ca3e8f0e3de9a70a803fdcabb4f8518b *R/subgroup_power.R
+2d70ddf721a95c6e813079447b3e3d58 *R/subgroup_power.R
 5f728929825d49662611cff4b17f093d *R/subgroup_power_integrity.R
 7ad660ffe959664c1a13cfdd992083fa *R/summary.homogen_power.R
 ef36be6188d030722fde2c784a965f50 *R/summary.mod_power.R
@@ -37,10 +37,10 @@ ef36be6188d030722fde2c784a965f50 *R/summary.mod_power.R
 9db3a0521ee63ad18337d253be3bb5d4 *inst/CITATION
 3cd1e6555eba7f301b010e415cfaf1bf *inst/apa.csl
 237188d238e034d60e2407976568b014 *inst/doc/Using-metapower.R
-1463c7f77058469f0b926c9a5828c28b *inst/doc/Using-metapower.Rmd
-04b7e9d8f1d99a4e243526cf8eb472d9 *inst/doc/Using-metapower.html
+d392a08bb8fca5c975147d041e2e76bd *inst/doc/Using-metapower.Rmd
+f61d110988165cc7826ba4b2a3c09626 *inst/doc/Using-metapower.html
 8a0350c7f2d62a6ffef0fae4b6eebc8a *inst/metapower.bib
-af2a2831fc1ec0cdc999b5a231ac39cd *inst/shiny_metapower/rsconnect/shinyapps.io/jason-griffin/shiny_metapower.dcf
+ec6413f202a9851b7bb90e10fb5bc12b *inst/shiny_metapower/rsconnect/shinyapps.io/jason-griffin/shiny_metapower.dcf
 0d63ce8c0ea05ee48aac68b55e9a5f41 *inst/shiny_metapower/server.R
 607f6e17160c4f7683cd4b75e8e8d4d0 *inst/shiny_metapower/ui.R
 02fd8aa9df957a7d2036912fb518e2f2 *inst/shiny_metapower/www/icon1.png
@@ -62,4 +62,4 @@ b4da0f67309639bf03d2a65bddb8bc8a *man/subgroup_power.Rd
 cc4e2c69e8ee66edae859382bc5d9f9a *tests/testthat.R
 7bff9a7061d09a733d2e9585512eaf8a *tests/testthat/test-input-output.R
 276b3fb33d1b7d1a60f2a24a32f6355d *tests/testthat/test-published-calc.R
-1463c7f77058469f0b926c9a5828c28b *vignettes/Using-metapower.Rmd
+d392a08bb8fca5c975147d041e2e76bd *vignettes/Using-metapower.Rmd
