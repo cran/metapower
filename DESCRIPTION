@@ -1,7 +1,7 @@
 Package: metapower
 Type: Package
 Title: Power Analysis for Meta-Analysis
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: person("Jason", "Griffin", email = "jasongriffin138@gmail.com", role = c("aut", "cre"))
 Description: A simple and effective tool for computing and visualizing statistical power for meta-analysis,
     including power analysis of main effects (Jackson & Turner, 2017)<doi:10.1002/jrsm.1240>, 
@@ -18,8 +18,8 @@ Suggests: rmarkdown (>= 2.1)
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 NeedsCompilation: no
-Packaged: 2020-12-08 16:46:14 UTC; jxg569
+Packaged: 2021-02-08 12:58:31 UTC; jxg569
 Author: Jason Griffin [aut, cre]
 Maintainer: Jason Griffin <jasongriffin138@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-12-09 07:50:03 UTC
+Date/Publication: 2021-02-08 13:20:02 UTC
